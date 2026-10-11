@@ -1,0 +1,24 @@
+Use case: infographic-diagram.
+Create one publication-quality Chinese technical architecture figure for a formal enterprise research-project progress report. This figure describes an IMPLEMENTED LOCAL SOFTWARE PROTOTYPE, not an industrial control system. Landscape aspect ratio about 2.2:1, very high resolution, restrained editorial diagram design, exquisite alignment, large legible Chinese typography, exceptionally clean geometry. Pure white (#FFFFFF) background throughout including all boxes, no colored fills, no gradients, no shadows, no photos, no decorative icons, no 3D devices. Only navy and muted teal thin vector-like lines and typography, generous white space. Technical precision over decoration.
+
+Top title, exactly: "构件状态展示与记录追溯原型"
+Small subtitle, exactly: "子课题四 · 模块化吊盘与保护棚"
+
+Central main architecture: three equal rectangular outlined columns connected LEFT TO RIGHT with simple straight arrows. Avoid arrows pointing back to equipment.
+Left column header: "样例数据层"
+Three aligned content rows: "构件目录" / "测点序列" / "作业记录"
+Bottom technology label: "SQLite"
+Middle column header: "只读服务层"
+Four aligned content rows: "参数校验" / "状态查询" / "关联检索" / "CSV 导出"
+Bottom technology label: "Python"
+Right column header: "网页展示层"
+Three aligned content rows: "二维构件点选" / "状态与曲线" / "记录筛选与详情"
+Bottom technology label: "HTML · CSS · JavaScript"
+
+Below the columns, a compact elegant process ribbon WITHOUT background fill, using five equally sized outlined small boxes linked with arrows:
+"构件选取" → "状态查询" → "历史查看" → "记录筛选" → "清单导出"
+
+At bottom a fine rule and understated footnote:
+"样例数据验证 · 不接入设备控制"
+
+Use only the specified text. All Chinese characters must be perfectly accurate and sharp. No badges, watermarks, pseudo-glyphs, hardware illustrations, unverifiable performance metrics, live-data claims, or additional text. Main architecture must dominate the canvas and remain readable when printed 16 cm wide.
