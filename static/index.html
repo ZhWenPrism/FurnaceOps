@@ -3,13 +3,13 @@
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>构件状态展示与记录追溯</title><link rel="stylesheet" href="/styles.css"><script src="/app.js" defer></script></head>
 <body>
 <aside class="sidebar">
-  <div class="brand"><span class="brand-symbol">S4</span><div>装备展示平台<small>ASSET OBSERVATORY</small></div></div>
-  <div class="section-label">专题工作台</div><div class="nav-active"><span>04</span> 模块化吊盘与保护棚</div>
+  <div class="brand"><span class="brand-symbol">S5</span><div>装备管控平台<small>ASSET OBSERVATORY</small></div></div>
+  <div class="section-label">课题五工作台</div><div class="nav-active"><span>05</span> 吊盘与保护棚专题</div>
   <a href="#workspace">构件布置与状态</a><a href="#records">作业记录与追溯</a>
   <div class="sidebar-bottom"><span class="dot"></span> 本地软件原型 <strong>v0.1</strong><p>只读展示 · 不参与设备控制</p></div>
 </aside>
 <main>
-  <header><div class="eyebrow">高炉中修装备作业综合展示平台 / 子课题四</div><div class="headline"><div><h1>构件状态与过程记录</h1><p>从构件位置进入测点信息，关联查询作业过程。</p></div><div class="mode-badge">合成样例数据</div></div></header>
+  <header><div class="eyebrow">课题五 设备管控平台研究 / 吊盘与保护棚专题</div><div class="headline"><div><h1>构件状态与过程记录</h1><p>从构件位置进入测点信息，关联查询作业过程。</p></div><div class="mode-badge">合成样例数据</div></div></header>
   <div class="notice"><span>演示说明</span> 当前数据为程序生成的固定样例，非企业实测。布置图为交互示意，不作为工程图或安全判定依据。</div>
   <div id="error" class="error" role="alert" hidden></div>
   <section class="stats" aria-label="数据概况"><article><span>构件总数</span><strong id="total">—</strong><small>吊盘与保护棚</small></article><article><span>有效样例</span><strong id="valid">—</strong><small>按快照时间核对</small></article><article><span>过期样例</span><strong id="stale">—</strong><small>超过 10 分钟未更新</small></article><article><span>缺测样例</span><strong id="missing">—</strong><small>不以零值代替</small></article></section>
