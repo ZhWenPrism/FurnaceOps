@@ -7,7 +7,7 @@ import tempfile
 import threading
 import unittest
 from urllib.error import HTTPError
-from urllib.request import Request, urlopen
+from urllib.request import ProxyHandler, Request, build_opener
 
 from app import SOURCE, SNAPSHOT, connect, create_server, initialize, quality, safe_csv
 
@@ -21,6 +21,7 @@ class APITest(unittest.TestCase):
         cls.thread=threading.Thread(target=cls.server.serve_forever,daemon=True)
         cls.thread.start()
         cls.base=f'http://127.0.0.1:{cls.server.server_port}'
+        cls.client=build_opener(ProxyHandler({}))
 
     @classmethod
     def tearDownClass(cls):
@@ -28,7 +29,7 @@ class APITest(unittest.TestCase):
 
     def raw(self,path,method='GET'):
         try:
-            with urlopen(Request(self.base+path,method=method),timeout=3) as response:
+            with self.client.open(Request(self.base+path,method=method),timeout=3) as response:
                 return response.status,response.read(),response.headers
         except HTTPError as err:
             return err.code,err.read(),err.headers
