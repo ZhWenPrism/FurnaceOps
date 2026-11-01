@@ -93,7 +93,11 @@ def initialize(path):
 def quality(asset, as_of):
     if asset['value'] is None or asset['observed_at'] is None:
         return 'missing'
-    age = (datetime.fromisoformat(as_of)-datetime.fromisoformat(asset['observed_at'])).total_seconds()
+    now = datetime.fromisoformat(as_of)
+    try:
+        age = (now-datetime.fromisoformat(asset['observed_at'])).total_seconds()
+    except (TypeError, ValueError):
+        return 'invalid'
     if age < 0:
         return 'invalid'
     return 'stale' if age > 600 else 'valid'
