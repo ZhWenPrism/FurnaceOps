@@ -69,6 +69,13 @@ class APITest(unittest.TestCase):
         status,body,headers=self.raw('/api/records.csv?asset_id=D-01');self.assertEqual(status,200);self.assertTrue(body.startswith(b'\xef\xbb\xbf'));rows=list(csv.reader(io.StringIO(body.decode('utf-8-sig'))));self.assertEqual(len(rows),6);self.assertTrue(all(r[1]=='D-01' and r[-1]==SOURCE for r in rows[1:]));self.assertIn('attachment',headers['Content-Disposition'])
     def test_csv_complete_filtered_export(self):
         _,body,_=self.raw('/api/records.csv?asset_id=D-01&limit=1&offset=2');self.assertEqual(len(list(csv.reader(io.StringIO(body.decode('utf-8-sig'))))),6)
+    def test_csv_ignores_invalid_pagination_values(self):
+        query = '?asset_id=D-01'
+        status, body, _ = self.raw('/api/records.csv'+query+'&limit=0&offset=bad')
+        self.assertEqual(status, 200)
+        self.assertEqual(body, self.raw('/api/records.csv'+query)[1])
+        self.assertEqual(self.raw('/api/records'+query+'&limit=0&offset=bad')[0], 400)
+
     def test_csv_formula_escape(self):
         for value in ['=1+1',' +SUM(A1)','-5','@cmd']:
             self.assertTrue(safe_csv(value).startswith("'"))

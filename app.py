@@ -212,10 +212,6 @@ class Handler(BaseHTTPRequestHandler):
                             conditions.append(key+'=?')
                             params.append(val)
                     where = ' WHERE '+' AND '.join(conditions) if conditions else ''
-                    total = db.execute('SELECT COUNT(*) FROM records'+where,params).fetchone()[0]
-                    limit,offset = int(q.get('limit',100)),int(q.get('offset',0))
-                    if not 1<=limit<=200 or not 0<=offset<=100000:
-                        raise BadRequest('Invalid pagination')
                     sql = 'SELECT * FROM records'+where+' ORDER BY timestamp DESC,id'
                     if parts.path.endswith('.csv'):
                         # Export the complete filtered result, independent of UI pagination.
@@ -227,6 +223,10 @@ class Handler(BaseHTTPRequestHandler):
                             writer.writerow([safe_csv(row[k]) for k in ('id','asset_id','timestamp','stage','title','result','note')]+[safe_csv(meta['source'])])
                         self.send('\ufeff'+out.getvalue(),content_type='text/csv',extra={'Content-Disposition':'attachment; filename="asset-records-demo.csv"'})
                     else:
+                        limit,offset = int(q.get('limit',100)),int(q.get('offset',0))
+                        if not 1<=limit<=200 or not 0<=offset<=100000:
+                            raise BadRequest('Invalid pagination')
+                        total = db.execute('SELECT COUNT(*) FROM records'+where,params).fetchone()[0]
                         rows = [dict(r) for r in db.execute(sql+' LIMIT ? OFFSET ?',params+[limit,offset])]
                         self.send({'items':rows,'total':total,'limit':limit,'offset':offset,'source':meta['source']})
                 else:
