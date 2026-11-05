@@ -105,7 +105,9 @@ def quality(asset, as_of):
 
 def safe_csv(value):
     text = str(value) if value is not None else ''
-    return "'"+text if text.lstrip().startswith(('=','+','-','@','\t','\r')) else text
+    if text.lstrip(' ').startswith(('\t','\r','\n')) or text.lstrip().startswith(('=','+','-','@')):
+        return "'"+text
+    return text
 
 
 class BadRequest(Exception):
@@ -222,7 +224,7 @@ class Handler(BaseHTTPRequestHandler):
                         writer = csv.writer(out)
                         writer.writerow(['记录编号','构件编号','时间','阶段','事项','来源结果','备注','数据来源'])
                         for row in rows:
-                            writer.writerow([safe_csv(row[k]) for k in ('id','asset_id','timestamp','stage','title','result','note')]+[meta['source']])
+                            writer.writerow([safe_csv(row[k]) for k in ('id','asset_id','timestamp','stage','title','result','note')]+[safe_csv(meta['source'])])
                         self.send('\ufeff'+out.getvalue(),content_type='text/csv',extra={'Content-Disposition':'attachment; filename="asset-records-demo.csv"'})
                     else:
                         rows = [dict(r) for r in db.execute(sql+' LIMIT ? OFFSET ?',params+[limit,offset])]
