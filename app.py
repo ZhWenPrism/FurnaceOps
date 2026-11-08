@@ -7,6 +7,7 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta
 from functools import partial
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from math import isfinite
 import io
 import json
 from pathlib import Path
@@ -90,9 +91,15 @@ def initialize(path):
                        [('seed_version','1'), ('snapshot',SNAPSHOT), ('source',SOURCE)])
 
 
+def finite_observation(value):
+    return isinstance(value, (int, float)) and isfinite(value)
+
+
 def quality(asset, as_of):
     if asset['value'] is None or asset['observed_at'] is None:
         return 'missing'
+    if not finite_observation(asset['value']):
+        return 'invalid'
     now = datetime.fromisoformat(as_of)
     try:
         age = (now-datetime.fromisoformat(asset['observed_at'])).total_seconds()
@@ -126,7 +133,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def send(self, data, status=200, content_type='application/json', extra=None):
         if isinstance(data, (dict,list)):
-            data = json.dumps(data, ensure_ascii=False).encode('utf-8')
+            data = json.dumps(data, ensure_ascii=False, allow_nan=False).encode('utf-8')
         elif isinstance(data,str):
             data = data.encode('utf-8')
         self.send_response(status)
@@ -173,6 +180,8 @@ class Handler(BaseHTTPRequestHandler):
                 for row in db.execute('SELECT * FROM assets ORDER BY id'):
                     a = dict(row)
                     a['quality'] = quality(a, meta['snapshot'])
+                    if not finite_observation(a['value']):
+                        a['value'] = None
                     a['metric'] = '示例温度'
                     assets.append(a)
                 if parts.path == '/api/health':
@@ -197,6 +206,9 @@ class Handler(BaseHTTPRequestHandler):
                         self.error('Asset not found',404)
                     elif parts.path.endswith('/series'):
                         rows = [dict(r) for r in db.execute('SELECT timestamp,value FROM measurements WHERE asset_id=? ORDER BY timestamp',(aid,))]
+                        for row in rows:
+                            if not finite_observation(row['value']):
+                                row['value'] = None
                         self.send({'asset_id':aid,'unit':a['unit'],'metric':a['metric'],'items':rows,'source':meta['source']})
                     else:
                         self.send({'asset':a,'source':meta['source'],'snapshot':meta['snapshot']})
