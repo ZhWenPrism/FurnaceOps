@@ -55,6 +55,7 @@ def initialize(path):
                 result TEXT NOT NULL, note TEXT NOT NULL);
             CREATE INDEX IF NOT EXISTS record_lookup ON records(asset_id,stage,timestamp);
         ''')
+        db.execute('BEGIN IMMEDIATE')
         if db.execute('SELECT 1 FROM metadata WHERE key=?', ('seed_version',)).fetchone():
             return
         now = datetime.fromisoformat(SNAPSHOT)
