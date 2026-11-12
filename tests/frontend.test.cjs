@@ -67,3 +67,18 @@ test('keyboard selection retains focus on the replacement asset', () => {
   assert.notEqual(oldButton, newButton);
   assert.equal(view.document.activeElement, newButton);
 });
+
+test('clears the previous rows when a new filter fails to load', async () => {
+  let rejectRequest;
+  const view = app(() => new Promise((_, reject) => { rejectRequest = reject; }));
+  const rows = view.element('rows');
+  rows.replaceChildren({ tag: 'tr' });
+  view.element('record-count').textContent = '5 条';
+  const pending = view.loadRecords();
+  assert.equal(rows.children.length, 0);
+  assert.equal(view.element('record-count').textContent, '读取中');
+  rejectRequest(new Error('Network failed'));
+  await pending;
+  assert.equal(rows.children.length, 0);
+  assert.equal(view.element('record-count').textContent, '读取失败');
+});

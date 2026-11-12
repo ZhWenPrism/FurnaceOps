@@ -62,6 +62,8 @@ function showRecord(row) {
 async function loadRecords() {
   const version=++state.recordVersion,q=recordQuery();
   $('export').href='/api/records.csv?'+q;
+  text('record-count','读取中');
+  $('rows').replaceChildren();
   try {
     const data=await api('/api/records?'+q);
     if(version!==state.recordVersion)return;
@@ -69,7 +71,12 @@ async function loadRecords() {
     const rows=data.items.map(row=>{const tr=document.createElement('tr');for(const key of ['timestamp','asset_id','stage','title','result']){const td=document.createElement('td');td.textContent=key==='timestamp'?stamp(row[key]):row[key];if(key==='result'){const badge=document.createElement('span');badge.className='tag'+(row.result==='待复核'?' pending':'');badge.textContent=row.result;td.replaceChildren(badge);}tr.append(td);}const td=document.createElement('td'),btn=document.createElement('button');btn.className='row-detail';btn.textContent='查看';btn.setAttribute('aria-label',`查看记录 ${row.id}`);btn.addEventListener('click',()=>showRecord(row));td.append(btn);tr.append(td);return tr;});
     if(!rows.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=6;td.className='empty-row';td.textContent='该筛选条件下暂无记录';tr.append(td);rows.push(tr);}
     $('rows').replaceChildren(...rows);
-  }catch(err){if(version===state.recordVersion)error(err);}
+  }catch(err){
+    if(version===state.recordVersion){
+      text('record-count','读取失败');
+      error(err);
+    }
+  }
 }
 async function selectAsset(id,keepFocus=false) {
   const version=++state.detailVersion;
