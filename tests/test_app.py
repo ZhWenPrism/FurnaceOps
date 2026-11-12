@@ -1,11 +1,13 @@
 import csv
 from datetime import datetime, timedelta
+from contextlib import contextmanager
 import io
 import json
 from pathlib import Path
 import tempfile
 import threading
 import unittest
+from unittest.mock import patch
 from urllib.error import HTTPError
 from urllib.request import ProxyHandler, Request, build_opener
 
@@ -42,6 +44,22 @@ class APITest(unittest.TestCase):
     def test_health(self):self.assertEqual(self.data('/api/health')['mode'],'synthetic')
     def test_summary(self):
         d=self.data('/api/summary');self.assertEqual((d['total'],d['records']),(6,30));self.assertEqual(d['quality_counts'],{'valid':4,'stale':1,'missing':1,'invalid':0})
+    def test_health_detail_and_records_do_not_read_the_entire_inventory(self):
+        statements = []
+
+        @contextmanager
+        def traced(path):
+            with connect(path) as db:
+                db.set_trace_callback(statements.append)
+                yield db
+
+        with patch("app.connect", traced):
+            self.assertEqual(self.data("/api/health")["status"], "ok")
+            self.assertEqual(self.data("/api/assets/D-01")["asset"]["id"], "D-01")
+            self.assertEqual(self.data("/api/assets/D-01/series")["asset_id"], "D-01")
+            self.assertEqual(self.data("/api/records?asset_id=D-01")["total"], 5)
+        self.assertNotIn("SELECT * FROM assets ORDER BY id", statements)
+
     def test_provenance(self):self.assertEqual(self.data('/api/assets')['source'],SOURCE)
     def test_group_filter(self):self.assertEqual(len(self.data('/api/assets?group=%E5%90%8A%E7%9B%98')['items']),3)
     def test_search(self):self.assertEqual(self.data('/api/assets?q=d-01')['items'][0]['id'],'D-01')

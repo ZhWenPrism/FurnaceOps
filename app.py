@@ -111,6 +111,15 @@ def quality(asset, as_of):
     return 'stale' if age > 600 else 'valid'
 
 
+def asset_payload(row, snapshot):
+    asset = dict(row)
+    asset['quality'] = quality(asset, snapshot)
+    if not finite_observation(asset['value']):
+        asset['value'] = None
+    asset['metric'] = '示例温度'
+    return asset
+
+
 def safe_csv(value):
     text = str(value) if value is not None else ''
     if text.lstrip(' ').startswith(('\t','\r','\n')) or text.lstrip().startswith(('=','+','-','@')):
@@ -177,14 +186,9 @@ class Handler(BaseHTTPRequestHandler):
                 return
             with connect(self.database) as db:
                 meta = dict(db.execute('SELECT key,value FROM metadata').fetchall())
-                assets = []
-                for row in db.execute('SELECT * FROM assets ORDER BY id'):
-                    a = dict(row)
-                    a['quality'] = quality(a, meta['snapshot'])
-                    if not finite_observation(a['value']):
-                        a['value'] = None
-                    a['metric'] = '示例温度'
-                    assets.append(a)
+                if parts.path in ('/api/summary','/api/assets'):
+                    assets = [asset_payload(row, meta['snapshot']) for row in
+                              db.execute('SELECT * FROM assets ORDER BY id')]
                 if parts.path == '/api/health':
                     self.send({'status':'ok','mode':'synthetic','version':'0.1.0'})
                 elif parts.path == '/api/summary':
@@ -202,10 +206,12 @@ class Handler(BaseHTTPRequestHandler):
                     self.send({'items':found,'source':meta['source'],'snapshot':meta['snapshot']})
                 elif re.fullmatch(r'/api/assets/[A-Z]-\d{2}(/series)?',parts.path):
                     aid = parts.path.split('/')[3]
-                    a = next((x for x in assets if x['id']==aid),None)
-                    if not a:
+                    row = db.execute('SELECT * FROM assets WHERE id=?', (aid,)).fetchone()
+                    if row is None:
                         self.error('Asset not found',404)
-                    elif parts.path.endswith('/series'):
+                        return
+                    a = asset_payload(row, meta['snapshot'])
+                    if parts.path.endswith('/series'):
                         rows = [dict(r) for r in db.execute('SELECT timestamp,value FROM measurements WHERE asset_id=? ORDER BY timestamp',(aid,))]
                         for row in rows:
                             if not finite_observation(row['value']):
@@ -215,7 +221,7 @@ class Handler(BaseHTTPRequestHandler):
                         self.send({'asset':a,'source':meta['source'],'snapshot':meta['snapshot']})
                 elif parts.path in ('/api/records','/api/records.csv'):
                     aid, stage = q.get('asset_id',''),q.get('stage','')
-                    if aid and not any(x['id']==aid for x in assets):
+                    if aid and db.execute('SELECT 1 FROM assets WHERE id=?', (aid,)).fetchone() is None:
                         raise BadRequest('Unknown asset_id')
                     if stage and stage not in STAGES:
                         raise BadRequest('Unknown stage')
