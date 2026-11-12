@@ -10,7 +10,8 @@ async function api(url) { const r=await fetch(url,{cache:'no-store'}); if(!r.ok)
 function error(err) { text('error',err.message); $('error').hidden=false; }
 function clearError() { $('error').hidden=true; }
 
-function renderLayout() {
+function renderLayout(focusId) {
+  let focusedAsset;
   const assets=state.assets.filter(a=>(!state.group||a.group_name===state.group)&&(!state.query||(a.id+' '+a.name).toLowerCase().includes(state.query.toLowerCase())));
   text('visible-count',`${assets.length} / ${state.assets.length} 个构件`);
   const canvas=svg('svg',{viewBox:'0 0 780 390',role:'group','aria-label':'吊盘与保护棚二维布置示意'});
@@ -20,11 +21,13 @@ function renderLayout() {
     const group=svg('g',{transform:`translate(${a.x-45} ${a.y-20})`,class:`asset ${a.id===state.selected?'active':''}`,role:'button',tabindex:'0','aria-label':`选择 ${a.id} ${a.name} ${labels[a.quality]}`,'aria-pressed':a.id===state.selected});
     group.append(svg('rect',{width:190,height:90,rx:8}),svg('circle',{cx:169,cy:19,r:4,class:a.quality+'-dot'}),svg('text',{x:16,y:30,class:'id-text'},a.id),svg('text',{x:16,y:54},a.name),svg('text',{x:16,y:75,class:'quality-text'},labels[a.quality]));
     group.addEventListener('click',()=>selectAsset(a.id));
-    group.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();selectAsset(a.id);}});
+    group.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();selectAsset(a.id,true);}});
     canvas.append(group);
+    if(a.id===focusId) focusedAsset=group;
   }
   if(!assets.length) canvas.append(svg('text',{x:390,y:183,'text-anchor':'middle',class:'zone-name'},'没有匹配的构件，请调整搜索条件'));
   $('layout').replaceChildren(canvas);
+  focusedAsset?.focus();
 }
 
 function renderChart(data) {
@@ -35,7 +38,16 @@ function renderChart(data) {
   const y=v=>99-(v-low)/(high-low)*78;
   for(let j=0;j<3;j++){const value=low+(high-low)*j/2, yy=y(value);chart.append(svg('line',{x1:40,y1:yy,x2:398,y2:yy,class:'grid-line'}),svg('text',{x:32,y:yy+3,'text-anchor':'end'},value.toFixed(1)));}
   let d='',connected=false;
-  data.items.forEach((p,i)=>{if(p.value===null||!Number.isFinite(p.value)){connected=false;return;}const x=40+i*358/Math.max(1,data.items.length-1);d+=`${connected?'L':'M'}${x.toFixed(1)},${y(p.value).toFixed(1)} `;connected=true;});
+  data.items.forEach((p,i)=>{
+    if(!Number.isFinite(p.value)){connected=false;return;}
+    const x=40+i*358/Math.max(1,data.items.length-1);
+    const yy=y(p.value);
+    if(!connected&&!Number.isFinite(data.items[i+1]?.value)){
+      chart.append(svg('circle',{cx:x,cy:yy,r:3,class:'line'}));
+    }
+    d+=`${connected?'L':'M'}${x.toFixed(1)},${yy.toFixed(1)} `;
+    connected=true;
+  });
   chart.append(svg('path',{d,class:'line'}));
   if(data.items.length)chart.append(svg('text',{x:40,y:120},data.items[0].timestamp.slice(11,16)),svg('text',{x:398,y:120,'text-anchor':'end'},data.items.at(-1).timestamp.slice(11,16)));
   $('chart').replaceChildren(chart);
@@ -50,6 +62,8 @@ function showRecord(row) {
 async function loadRecords() {
   const version=++state.recordVersion,q=recordQuery();
   $('export').href='/api/records.csv?'+q;
+  text('record-count','读取中');
+  $('rows').replaceChildren();
   try {
     const data=await api('/api/records?'+q);
     if(version!==state.recordVersion)return;
@@ -57,11 +71,16 @@ async function loadRecords() {
     const rows=data.items.map(row=>{const tr=document.createElement('tr');for(const key of ['timestamp','asset_id','stage','title','result']){const td=document.createElement('td');td.textContent=key==='timestamp'?stamp(row[key]):row[key];if(key==='result'){const badge=document.createElement('span');badge.className='tag'+(row.result==='待复核'?' pending':'');badge.textContent=row.result;td.replaceChildren(badge);}tr.append(td);}const td=document.createElement('td'),btn=document.createElement('button');btn.className='row-detail';btn.textContent='查看';btn.setAttribute('aria-label',`查看记录 ${row.id}`);btn.addEventListener('click',()=>showRecord(row));td.append(btn);tr.append(td);return tr;});
     if(!rows.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=6;td.className='empty-row';td.textContent='该筛选条件下暂无记录';tr.append(td);rows.push(tr);}
     $('rows').replaceChildren(...rows);
-  }catch(err){if(version===state.recordVersion)error(err);}
+  }catch(err){
+    if(version===state.recordVersion){
+      text('record-count','读取失败');
+      error(err);
+    }
+  }
 }
-async function selectAsset(id) {
+async function selectAsset(id,keepFocus=false) {
   const version=++state.detailVersion;
-  state.selected=id;renderLayout();clearError();
+  state.selected=id;renderLayout(keepFocus?id:undefined);clearError();
   text('asset-name','正在读取');text('asset-id',id);text('value','—');text('observed','—');text('region','—');text('source-state','');text('quality-badge','读取中');$('chart').replaceChildren();
   loadRecords();
   try {
