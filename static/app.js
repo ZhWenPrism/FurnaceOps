@@ -10,7 +10,8 @@ async function api(url) { const r=await fetch(url,{cache:'no-store'}); if(!r.ok)
 function error(err) { text('error',err.message); $('error').hidden=false; }
 function clearError() { $('error').hidden=true; }
 
-function renderLayout() {
+function renderLayout(focusId) {
+  let focusedAsset;
   const assets=state.assets.filter(a=>(!state.group||a.group_name===state.group)&&(!state.query||(a.id+' '+a.name).toLowerCase().includes(state.query.toLowerCase())));
   text('visible-count',`${assets.length} / ${state.assets.length} 个构件`);
   const canvas=svg('svg',{viewBox:'0 0 780 390',role:'group','aria-label':'吊盘与保护棚二维布置示意'});
@@ -20,11 +21,13 @@ function renderLayout() {
     const group=svg('g',{transform:`translate(${a.x-45} ${a.y-20})`,class:`asset ${a.id===state.selected?'active':''}`,role:'button',tabindex:'0','aria-label':`选择 ${a.id} ${a.name} ${labels[a.quality]}`,'aria-pressed':a.id===state.selected});
     group.append(svg('rect',{width:190,height:90,rx:8}),svg('circle',{cx:169,cy:19,r:4,class:a.quality+'-dot'}),svg('text',{x:16,y:30,class:'id-text'},a.id),svg('text',{x:16,y:54},a.name),svg('text',{x:16,y:75,class:'quality-text'},labels[a.quality]));
     group.addEventListener('click',()=>selectAsset(a.id));
-    group.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();selectAsset(a.id);}});
+    group.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();selectAsset(a.id,true);}});
     canvas.append(group);
+    if(a.id===focusId) focusedAsset=group;
   }
   if(!assets.length) canvas.append(svg('text',{x:390,y:183,'text-anchor':'middle',class:'zone-name'},'没有匹配的构件，请调整搜索条件'));
   $('layout').replaceChildren(canvas);
+  focusedAsset?.focus();
 }
 
 function renderChart(data) {
@@ -68,9 +71,9 @@ async function loadRecords() {
     $('rows').replaceChildren(...rows);
   }catch(err){if(version===state.recordVersion)error(err);}
 }
-async function selectAsset(id) {
+async function selectAsset(id,keepFocus=false) {
   const version=++state.detailVersion;
-  state.selected=id;renderLayout();clearError();
+  state.selected=id;renderLayout(keepFocus?id:undefined);clearError();
   text('asset-name','正在读取');text('asset-id',id);text('value','—');text('observed','—');text('region','—');text('source-state','');text('quality-badge','读取中');$('chart').replaceChildren();
   loadRecords();
   try {

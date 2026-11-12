@@ -53,3 +53,17 @@ test('shows isolated observations without joining across missing readings', () =
   const line = chart.children.find(child => child.tag === 'path');
   assert.equal((line.attributes.d.match(/L/g) || []).length, 1);
 });
+
+test('keyboard selection retains focus on the replacement asset', () => {
+  const view = app();
+  view.state.assets = [{ id: 'D-01', name: 'Module 1', x: 1, y: 2, quality: 'valid' }];
+  view.renderLayout();
+  const [first] = view.element('layout').children;
+  const oldButton = first.children.find(child => child.tag === 'g');
+  oldButton.focus();
+  oldButton.handlers.keydown({ key: 'Enter', preventDefault() {} });
+  const [newLayout] = view.element('layout').children;
+  const newButton = newLayout.children.find(child => child.tag === 'g');
+  assert.notEqual(oldButton, newButton);
+  assert.equal(view.document.activeElement, newButton);
+});
