@@ -35,7 +35,16 @@ function renderChart(data) {
   const y=v=>99-(v-low)/(high-low)*78;
   for(let j=0;j<3;j++){const value=low+(high-low)*j/2, yy=y(value);chart.append(svg('line',{x1:40,y1:yy,x2:398,y2:yy,class:'grid-line'}),svg('text',{x:32,y:yy+3,'text-anchor':'end'},value.toFixed(1)));}
   let d='',connected=false;
-  data.items.forEach((p,i)=>{if(p.value===null||!Number.isFinite(p.value)){connected=false;return;}const x=40+i*358/Math.max(1,data.items.length-1);d+=`${connected?'L':'M'}${x.toFixed(1)},${y(p.value).toFixed(1)} `;connected=true;});
+  data.items.forEach((p,i)=>{
+    if(!Number.isFinite(p.value)){connected=false;return;}
+    const x=40+i*358/Math.max(1,data.items.length-1);
+    const yy=y(p.value);
+    if(!connected&&!Number.isFinite(data.items[i+1]?.value)){
+      chart.append(svg('circle',{cx:x,cy:yy,r:3,class:'line'}));
+    }
+    d+=`${connected?'L':'M'}${x.toFixed(1)},${yy.toFixed(1)} `;
+    connected=true;
+  });
   chart.append(svg('path',{d,class:'line'}));
   if(data.items.length)chart.append(svg('text',{x:40,y:120},data.items[0].timestamp.slice(11,16)),svg('text',{x:398,y:120,'text-anchor':'end'},data.items.at(-1).timestamp.slice(11,16)));
   $('chart').replaceChildren(chart);
