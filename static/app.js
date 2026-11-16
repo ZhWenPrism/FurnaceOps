@@ -87,7 +87,8 @@ async function loadRecords() {
 async function selectAsset(id,keepFocus=false) {
   const version=++state.detailVersion;
   state.selected=id;renderLayout(keepFocus?id:undefined);showError('detail');
-  text('asset-name','正在读取');text('asset-id',id);text('value','—');text('observed','—');text('region','—');text('source-state','');text('quality-badge','读取中');$('chart').replaceChildren();
+  text('asset-name','正在读取');text('asset-id',id);text('value','—');text('observed','—');text('region','—');text('source-state','');
+  text('value-note','');text('quality-badge','读取中');$('quality-badge').className='quality-badge';$('chart').replaceChildren();
   loadRecords();
   try {
     const [detail,series]=await Promise.all([api('/api/assets/'+id),api('/api/assets/'+id+'/series')]);

@@ -116,3 +116,12 @@ test('hides the record error banner after a successful retry', async () => {
   assert.equal(view.element('error').hidden, true);
   assert.equal(view.element('error').textContent, '');
 });
+
+test('a pending selection clears the previous asset note and status styling', () => {
+  const view = app();
+  view.element('value-note').textContent = 'Previous status';
+  view.element('quality-badge').className = 'quality-badge stale';
+  view.selectAsset('P-03');
+  assert.equal(view.element('value-note').textContent, '');
+  assert.equal(view.element('quality-badge').className, 'quality-badge');
+});
