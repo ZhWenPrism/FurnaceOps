@@ -42,10 +42,14 @@ function renderChart(data) {
   const low=Math.floor((Math.min(...present)-.2)*10)/10,high=Math.ceil((Math.max(...present)+.2)*10)/10;
   const y=v=>99-(v-low)/(high-low)*78;
   for(let j=0;j<3;j++){const value=low+(high-low)*j/2, yy=y(value);chart.append(svg('line',{x1:40,y1:yy,x2:398,y2:yy,class:'grid-line'}),svg('text',{x:32,y:yy+3,'text-anchor':'end'},value.toFixed(1)));}
+  const times = data.items.map(item => Date.parse(item.timestamp));
+  const span = times.at(-1) - times[0];
+  const useTime = span > 0 && times.every((time, i) => Number.isFinite(time) && (i === 0 || time >= times[i - 1]));
   let d='',connected=false;
   data.items.forEach((p,i)=>{
     if(!Number.isFinite(p.value)){connected=false;return;}
-    const x=40+i*358/Math.max(1,data.items.length-1);
+    const position = useTime ? (times[i] - times[0]) / span : i / Math.max(1, data.items.length - 1);
+    const x = 40 + 358 * position;
     const yy=y(p.value);
     if(!connected&&!Number.isFinite(data.items[i+1]?.value)){
       chart.append(svg('circle',{cx:x,cy:yy,r:3,class:'line'}));

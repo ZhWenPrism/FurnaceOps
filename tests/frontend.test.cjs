@@ -125,3 +125,14 @@ test('a pending selection clears the previous asset note and status styling', ()
   assert.equal(view.element('value-note').textContent, '');
   assert.equal(view.element('quality-badge').className, 'quality-badge');
 });
+
+test('plots irregular readings at their elapsed-time positions', () => {
+  const view = app();
+  const items = ['00:00', '00:05', '00:20'].map((time, value) => ({
+    value, timestamp: `2026-11-12T${time}:00+08:00`,
+  }));
+  view.renderChart({ asset_id: 'D-01', items });
+  const [chart] = view.element('chart').children;
+  const line = chart.children.find(child => child.tag === 'path');
+  assert.match(line.attributes.d, /^M40\.0,.* L129\.5,.* L398\.0,/);
+});
