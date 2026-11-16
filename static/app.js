@@ -7,8 +7,13 @@ function text(id,value) { $(id).textContent = value; }
 function svg(tag,attrs={},value) { const el=document.createElementNS(svgNS,tag); Object.entries(attrs).forEach(([k,v])=>el.setAttribute(k,v)); if(value!==undefined) el.textContent=value; return el; }
 function stamp(value) { return value ? value.slice(5,16).replace('T',' ')+' CST' : '暂无记录'; }
 async function api(url) { const r=await fetch(url,{cache:'no-store'}); if(!r.ok) throw new Error(`数据读取失败（${r.status}），请检查本地服务。`); return r.json(); }
-function error(err) { text('error',err.message); $('error').hidden=false; }
-function clearError() { $('error').hidden=true; }
+const errors = { summary: '', detail: '', records: '' };
+function showError(section, err) {
+  errors[section] = err?.message ?? '';
+  const message = Object.values(errors).filter(Boolean).join(' · ');
+  text('error',message);
+  $('error').hidden = !message;
+}
 
 function renderLayout(focusId) {
   let focusedAsset;
@@ -37,10 +42,14 @@ function renderChart(data) {
   const low=Math.floor((Math.min(...present)-.2)*10)/10,high=Math.ceil((Math.max(...present)+.2)*10)/10;
   const y=v=>99-(v-low)/(high-low)*78;
   for(let j=0;j<3;j++){const value=low+(high-low)*j/2, yy=y(value);chart.append(svg('line',{x1:40,y1:yy,x2:398,y2:yy,class:'grid-line'}),svg('text',{x:32,y:yy+3,'text-anchor':'end'},value.toFixed(1)));}
+  const times = data.items.map(item => Date.parse(item.timestamp));
+  const span = times.at(-1) - times[0];
+  const useTime = span > 0 && times.every((time, i) => Number.isFinite(time) && (i === 0 || time >= times[i - 1]));
   let d='',connected=false;
   data.items.forEach((p,i)=>{
     if(!Number.isFinite(p.value)){connected=false;return;}
-    const x=40+i*358/Math.max(1,data.items.length-1);
+    const position = useTime ? (times[i] - times[0]) / span : i / Math.max(1, data.items.length - 1);
+    const x = 40 + 358 * position;
     const yy=y(p.value);
     if(!connected&&!Number.isFinite(data.items[i+1]?.value)){
       chart.append(svg('circle',{cx:x,cy:yy,r:3,class:'line'}));
@@ -62,6 +71,7 @@ function showRecord(row) {
 async function loadRecords() {
   const version=++state.recordVersion,q=recordQuery();
   $('export').href='/api/records.csv?'+q;
+  showError('records');
   text('record-count','读取中');
   $('rows').replaceChildren();
   try {
@@ -74,14 +84,15 @@ async function loadRecords() {
   }catch(err){
     if(version===state.recordVersion){
       text('record-count','读取失败');
-      error(err);
+      showError('records',err);
     }
   }
 }
 async function selectAsset(id,keepFocus=false) {
   const version=++state.detailVersion;
-  state.selected=id;renderLayout(keepFocus?id:undefined);clearError();
-  text('asset-name','正在读取');text('asset-id',id);text('value','—');text('observed','—');text('region','—');text('source-state','');text('quality-badge','读取中');$('chart').replaceChildren();
+  state.selected=id;renderLayout(keepFocus?id:undefined);showError('detail');
+  text('asset-name','正在读取');text('asset-id',id);text('value','—');text('observed','—');text('region','—');text('source-state','');
+  text('value-note','');text('quality-badge','读取中');$('quality-badge').className='quality-badge';$('chart').replaceChildren();
   loadRecords();
   try {
     const [detail,series]=await Promise.all([api('/api/assets/'+id),api('/api/assets/'+id+'/series')]);
@@ -91,7 +102,7 @@ async function selectAsset(id,keepFocus=false) {
     text('value',a.value===null?'—':a.value.toFixed(1));
     text('value-note',a.quality==='stale'?'该值为过期样例，不表示当前状态':a.quality==='missing'?'未提供测值；不替换为零，不生成安全结论':'演示指标，不用于工程判断');
     renderChart(series);
-  }catch(err){if(version===state.detailVersion)error(err);}
+  }catch(err){if(version===state.detailVersion)showError('detail',err);}
 }
 
 document.querySelectorAll('[data-group]').forEach(btn=>btn.addEventListener('click',()=>{state.group=btn.dataset.group;document.querySelectorAll('[data-group]').forEach(b=>b.classList.toggle('selected',b===btn));renderLayout();}));
@@ -99,7 +110,7 @@ $('search').addEventListener('input',e=>{state.query=e.target.value;renderLayout
 ['scope','stage'].forEach(id=>$(id).addEventListener('change',loadRecords));
 $('close-dialog').addEventListener('click',()=>$('record-dialog').close());
 async function start() {
-  try {const [summary,assets]=await Promise.all([api('/api/summary'),api('/api/assets')]);state.assets=assets.items;state.snapshot=summary.snapshot;text('total',summary.total);text('valid',summary.quality_counts.valid);text('stale',summary.quality_counts.stale);text('missing',summary.quality_counts.missing);text('snapshot',stamp(summary.snapshot));await selectAsset(state.selected);}catch(err){error(err);}
+  try {const [summary,assets]=await Promise.all([api('/api/summary'),api('/api/assets')]);state.assets=assets.items;state.snapshot=summary.snapshot;text('total',summary.total);text('valid',summary.quality_counts.valid);text('stale',summary.quality_counts.stale);text('missing',summary.quality_counts.missing);text('snapshot',stamp(summary.snapshot));await selectAsset(state.selected);}catch(err){showError('summary',err);}
 }
 start();
 
