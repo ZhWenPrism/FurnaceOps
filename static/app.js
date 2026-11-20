@@ -5,7 +5,10 @@ const state = { assets:[], selected:'D-01', group:'', query:'', snapshot:'', det
 const svgNS = 'http://www.w3.org/2000/svg';
 function text(id,value) { $(id).textContent = value; }
 function svg(tag,attrs={},value) { const el=document.createElementNS(svgNS,tag); Object.entries(attrs).forEach(([k,v])=>el.setAttribute(k,v)); if(value!==undefined) el.textContent=value; return el; }
-function stamp(value) { return value ? value.slice(5,16).replace('T',' ')+' CST' : '暂无记录'; }
+function stamp(value) {
+  const time = Date.parse(value);
+  return Number.isFinite(time) ? new Date(time + 8 * 3600000).toISOString().slice(5,16).replace('T',' ')+' CST' : '暂无记录';
+}
 async function api(url) { const r=await fetch(url,{cache:'no-store'}); if(!r.ok) throw new Error(`数据读取失败（${r.status}），请检查本地服务。`); return r.json(); }
 const errors = { summary: '', detail: '', records: '' };
 function showError(section, err) {
@@ -58,7 +61,7 @@ function renderChart(data) {
     connected=true;
   });
   chart.append(svg('path',{d,class:'line'}));
-  if(data.items.length)chart.append(svg('text',{x:40,y:120},data.items[0].timestamp.slice(11,16)),svg('text',{x:398,y:120,'text-anchor':'end'},data.items.at(-1).timestamp.slice(11,16)));
+  if(data.items.length)chart.append(svg('text',{x:40,y:120},stamp(data.items[0].timestamp).slice(6,11)),svg('text',{x:398,y:120,'text-anchor':'end'},stamp(data.items.at(-1).timestamp).slice(6,11)));
   $('chart').replaceChildren(chart);
 }
 
