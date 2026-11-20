@@ -29,4 +29,4 @@ jobs:
           package-manager-cache: false
       - name: Run frontend tests
         if: runner.os == 'Linux' && matrix.python-version == '3.12'
-        run: node --test tests/frontend.test.cjs
+        run: node --test tests/*.test.cjs

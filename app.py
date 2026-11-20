@@ -27,8 +27,8 @@ STATIC = {'/': ('index.html', 'text/html'), '/app.js': ('app.js', 'text/javascri
 def connect(path):
     db = sqlite3.connect(str(path))
     db.row_factory = sqlite3.Row
-    db.execute('PRAGMA foreign_keys=ON')
     try:
+        db.execute('PRAGMA foreign_keys=ON')
         with db:
             yield db
     finally:
@@ -156,7 +156,8 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header(k,v)
         self.end_headers()
         try:
-            self.wfile.write(data)
+            if self.command != 'HEAD':
+                self.wfile.write(data)
         except (BrokenPipeError, ConnectionResetError):
             pass
 
@@ -169,6 +170,9 @@ class Handler(BaseHTTPRequestHandler):
     do_PUT = do_POST
     do_DELETE = do_POST
     do_PATCH = do_POST
+
+    def do_HEAD(self):
+        self.do_GET()
 
     def do_GET(self):
         try:
