@@ -27,8 +27,8 @@ STATIC = {'/': ('index.html', 'text/html'), '/app.js': ('app.js', 'text/javascri
 def connect(path):
     db = sqlite3.connect(str(path))
     db.row_factory = sqlite3.Row
-    db.execute('PRAGMA foreign_keys=ON')
     try:
+        db.execute('PRAGMA foreign_keys=ON')
         with db:
             yield db
     finally:
