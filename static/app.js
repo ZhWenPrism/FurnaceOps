@@ -113,7 +113,11 @@ $('search').addEventListener('input',e=>{state.query=e.target.value;renderLayout
 ['scope','stage'].forEach(id=>$(id).addEventListener('change',loadRecords));
 $('close-dialog').addEventListener('click',()=>$('record-dialog').close());
 async function start() {
-  try {const [summary,assets]=await Promise.all([api('/api/summary'),api('/api/assets')]);state.assets=assets.items;state.snapshot=summary.snapshot;text('total',summary.total);text('valid',summary.quality_counts.valid);text('stale',summary.quality_counts.stale);text('missing',summary.quality_counts.missing);text('snapshot',stamp(summary.snapshot));await selectAsset(state.selected);}catch(err){showError('summary',err);}
+  try {const [summary,assets]=await Promise.all([api('/api/summary'),api('/api/assets')]);state.assets=assets.items;state.snapshot=summary.snapshot;text('total',summary.total);text('valid',summary.quality_counts.valid);text('stale',summary.quality_counts.stale);text('missing',summary.quality_counts.missing);text('snapshot',stamp(summary.snapshot));if (state.assets.length) {
+    const selected = state.assets.some(a => a.id === state.selected) ? state.selected : state.assets[0].id;
+    await selectAsset(selected);
+  } else { renderLayout(); }
+  }catch(err){showError('summary',err);}
 }
 start();
 
