@@ -156,7 +156,8 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header(k,v)
         self.end_headers()
         try:
-            self.wfile.write(data)
+            if self.command != 'HEAD':
+                self.wfile.write(data)
         except (BrokenPipeError, ConnectionResetError):
             pass
 
@@ -169,6 +170,9 @@ class Handler(BaseHTTPRequestHandler):
     do_PUT = do_POST
     do_DELETE = do_POST
     do_PATCH = do_POST
+
+    def do_HEAD(self):
+        self.do_GET()
 
     def do_GET(self):
         try:
