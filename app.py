@@ -165,7 +165,8 @@ class Handler(BaseHTTPRequestHandler):
         self.send({'error':message}, status)
 
     def do_POST(self):
-        self.error('Read-only prototype: write operations are disabled.',405)
+        self.send({'error':'Read-only prototype: write operations are disabled.'},405,
+                  extra={'Allow':'GET, HEAD'})
 
     do_PUT = do_POST
     do_DELETE = do_POST
