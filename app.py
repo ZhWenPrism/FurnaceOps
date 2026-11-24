@@ -216,7 +216,7 @@ class Handler(BaseHTTPRequestHandler):
                         return
                     a = asset_payload(row, meta['snapshot'])
                     if parts.path.endswith('/series'):
-                        rows = [dict(r) for r in db.execute('SELECT timestamp,value FROM measurements WHERE asset_id=? ORDER BY timestamp',(aid,))]
+                        rows = [dict(r) for r in db.execute('SELECT timestamp,value FROM measurements WHERE asset_id=? ORDER BY julianday(timestamp),timestamp',(aid,))]
                         for row in rows:
                             if not finite_observation(row['value']):
                                 row['value'] = None
@@ -235,7 +235,7 @@ class Handler(BaseHTTPRequestHandler):
                             conditions.append(key+'=?')
                             params.append(val)
                     where = ' WHERE '+' AND '.join(conditions) if conditions else ''
-                    sql = 'SELECT * FROM records'+where+' ORDER BY timestamp DESC,id'
+                    sql = 'SELECT * FROM records'+where+' ORDER BY julianday(timestamp) DESC,timestamp DESC,id'
                     if parts.path.endswith('.csv'):
                         # Export the complete filtered result, independent of UI pagination.
                         rows = [dict(r) for r in db.execute(sql,params)]
